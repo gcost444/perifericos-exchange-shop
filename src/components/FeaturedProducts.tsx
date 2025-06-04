@@ -1,6 +1,7 @@
 
 import React from 'react';
 import ProductCard from './ProductCard';
+import { Link } from 'react-router-dom';
 
 const FeaturedProducts = () => {
   const featuredProducts = [
@@ -91,9 +92,11 @@ const FeaturedProducts = () => {
         </div>
 
         <div className="text-center mt-12">
-          <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-            Ver Todos os Produtos
-          </button>
+          <Link to="/products">
+            <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              Ver Todos os Produtos
+            </button>
+          </Link>
         </div>
       </div>
     </section>

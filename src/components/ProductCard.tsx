@@ -2,6 +2,7 @@
 import React from 'react';
 import { Star, Heart, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useApp } from '../contexts/AppContext';
 
 interface Product {
   id: number;
@@ -20,6 +21,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { addToCart, toggleWishlist, isInWishlist } = useApp();
   const discountPercent = Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100);
 
   const getConditionColor = (condition: string) => {
@@ -29,6 +31,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       case 'Bom': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleAddToCart = () => {
+    addToCart(product);
+    // You could add a toast notification here
+  };
+
+  const handleToggleWishlist = () => {
+    toggleWishlist(product.id);
   };
 
   return (
@@ -46,8 +57,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
         
         {/* Wishlist Button */}
-        <button className="absolute top-3 right-3 bg-white/90 p-2 rounded-full hover:bg-white transition-colors">
-          <Heart className="h-4 w-4 text-gray-600 hover:text-red-500" />
+        <button 
+          onClick={handleToggleWishlist}
+          className="absolute top-3 right-3 bg-white/90 p-2 rounded-full hover:bg-white transition-colors"
+        >
+          <Heart 
+            className={`h-4 w-4 transition-colors ${
+              isInWishlist(product.id) 
+                ? 'text-red-500 fill-current' 
+                : 'text-gray-600 hover:text-red-500'
+            }`} 
+          />
         </button>
         
         {/* Condition Badge */}
@@ -98,7 +118,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </div>
         
         <div className="flex space-x-2">
-          <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleAddToCart} className="flex-1 bg-blue-600 hover:bg-blue-700">
             <ShoppingCart className="h-4 w-4 mr-2" />
             Adicionar ao Carrinho
           </Button>

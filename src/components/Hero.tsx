@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Shield, Truck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
@@ -18,13 +19,17 @@ const Hero = () => {
               Teclados, mouses, headsets e muito mais com garantia de 90 dias.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-                Ver Produtos
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
-                Como Funciona
-              </Button>
+              <Link to="/products">
+                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
+                  Ver Produtos
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/about">
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
+                  Como Funciona
+                </Button>
+              </Link>
             </div>
             
             {/* Features */}
