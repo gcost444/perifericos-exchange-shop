@@ -3,12 +3,14 @@ import React from 'react';
 import { Star, Heart, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '../contexts/AppContext';
+import { Link } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 
 interface Product {
   id: number;
   name: string;
-  originalPrice: number;
-  salePrice: number;
+  original_price: number;
+  sale_price: number;
   condition: string;
   image: string;
   rating: number;
@@ -22,7 +24,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, toggleWishlist, isInWishlist } = useApp();
-  const discountPercent = Math.round(((product.originalPrice - product.salePrice) / product.originalPrice) * 100);
+  const discountPercent = Math.round(((product.original_price - product.sale_price) / product.original_price) * 100);
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
@@ -35,11 +37,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleAddToCart = () => {
     addToCart(product);
-    // You could add a toast notification here
+    toast({
+      title: "Produto adicionado!",
+      description: `${product.name} foi adicionado ao carrinho.`,
+    });
   };
 
   const handleToggleWishlist = () => {
     toggleWishlist(product.id);
+    toast({
+      title: isInWishlist(product.id) ? "Removido da lista" : "Adicionado à lista",
+      description: isInWishlist(product.id) 
+        ? "Produto removido da lista de desejos" 
+        : "Produto adicionado à lista de desejos",
+    });
   };
 
   return (
@@ -106,14 +117,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className="mb-4">
           <div className="flex items-center space-x-2">
             <span className="text-2xl font-bold text-gray-800">
-              R$ {product.salePrice.toFixed(2)}
+              R$ {product.sale_price.toFixed(2)}
             </span>
             <span className="text-lg text-gray-500 line-through">
-              R$ {product.originalPrice.toFixed(2)}
+              R$ {product.original_price.toFixed(2)}
             </span>
           </div>
           <p className="text-sm text-green-600 font-medium">
-            Economia de R$ {(product.originalPrice - product.salePrice).toFixed(2)}
+            Economia de R$ {(product.original_price - product.sale_price).toFixed(2)}
           </p>
         </div>
         
@@ -122,9 +133,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <ShoppingCart className="h-4 w-4 mr-2" />
             Adicionar ao Carrinho
           </Button>
-          <Button variant="outline" size="sm">
-            Ver Detalhes
-          </Button>
+          <Link to={`/product/${product.id}`}>
+            <Button variant="outline" size="sm">
+              Ver Detalhes
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

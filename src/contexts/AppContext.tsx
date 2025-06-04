@@ -14,8 +14,11 @@ interface AppContextType {
   wishlistItems: number[];
   addToCart: (product: any) => void;
   removeFromCart: (productId: number) => void;
+  updateCartItemQuantity: (productId: number, quantity: number) => void;
+  clearCart: () => void;
   toggleWishlist: (productId: number) => void;
   getCartItemsCount: () => number;
+  getCartTotal: () => number;
   isInWishlist: (productId: number) => boolean;
 }
 
@@ -50,7 +53,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return [...prev, {
         id: product.id,
         name: product.name,
-        price: product.salePrice,
+        price: product.sale_price,
         quantity: 1,
         image: product.image
       }];
@@ -59,6 +62,25 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   const removeFromCart = (productId: number) => {
     setCartItems(prev => prev.filter(item => item.id !== productId));
+  };
+
+  const updateCartItemQuantity = (productId: number, quantity: number) => {
+    if (quantity <= 0) {
+      removeFromCart(productId);
+      return;
+    }
+    
+    setCartItems(prev => 
+      prev.map(item =>
+        item.id === productId
+          ? { ...item, quantity }
+          : item
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
   };
 
   const toggleWishlist = (productId: number) => {
@@ -73,6 +95,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     return cartItems.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
   const isInWishlist = (productId: number) => {
     return wishlistItems.includes(productId);
   };
@@ -83,8 +109,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       wishlistItems,
       addToCart,
       removeFromCart,
+      updateCartItemQuantity,
+      clearCart,
       toggleWishlist,
       getCartItemsCount,
+      getCartTotal,
       isInWishlist
     }}>
       {children}

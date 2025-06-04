@@ -1,14 +1,16 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart, Search, Menu, User, Heart } from 'lucide-react';
+import { ShoppingCart, Search, Menu, User, Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { getCartItemsCount, wishlistItems } = useApp();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -16,6 +18,11 @@ const Header = () => {
     if (searchTerm.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchTerm)}`);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
@@ -65,9 +72,24 @@ const Header = () => {
               </Button>
             </Link>
             
-            <Button variant="ghost" size="sm">
-              <User className="h-5 w-5" />
-            </Button>
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <Link to="/orders">
+                  <Button variant="ghost" size="sm">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="ghost" size="sm">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
 
             <Link to="/cart">
               <Button variant="ghost" size="sm" className="relative">
@@ -114,6 +136,14 @@ const Header = () => {
               <Link to="/about" className="text-gray-700 hover:text-blue-600 transition-colors">Sobre</Link>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition-colors">Contato</Link>
               <Link to="/wishlist" className="text-gray-700 hover:text-blue-600 transition-colors">Lista de Desejos</Link>
+              {user ? (
+                <>
+                  <Link to="/orders" className="text-gray-700 hover:text-blue-600 transition-colors">Meus Pedidos</Link>
+                  <button onClick={handleSignOut} className="text-gray-700 hover:text-blue-600 transition-colors text-left">Sair</button>
+                </>
+              ) : (
+                <Link to="/auth" className="text-gray-700 hover:text-blue-600 transition-colors">Entrar</Link>
+              )}
             </div>
           </div>
         )}

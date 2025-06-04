@@ -1,114 +1,80 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { Search, Filter, Grid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { useSearchParams } from 'react-router-dom';
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  original_price: number;
+  sale_price: number;
+  condition: string;
+  image: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  stock: number;
+}
 
 const Products = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-  const allProducts = [
-    {
-      id: 1,
-      name: 'Logitech MX Master 3',
-      originalPrice: 399.99,
-      salePrice: 249.99,
-      condition: 'Excelente',
-      image: '/placeholder.svg',
-      rating: 4.8,
-      reviews: 156,
-      category: 'Mouse'
-    },
-    {
-      id: 2,
-      name: 'Corsair K70 RGB',
-      originalPrice: 899.99,
-      salePrice: 549.99,
-      condition: 'Muito Bom',
-      image: '/placeholder.svg',
-      rating: 4.9,
-      reviews: 203,
-      category: 'Teclado'
-    },
-    {
-      id: 3,
-      name: 'HyperX Cloud II',
-      originalPrice: 299.99,
-      salePrice: 179.99,
-      condition: 'Bom',
-      image: '/placeholder.svg',
-      rating: 4.7,
-      reviews: 89,
-      category: 'Headset'
-    },
-    {
-      id: 4,
-      name: 'LG UltraWide 29"',
-      originalPrice: 1299.99,
-      salePrice: 799.99,
-      condition: 'Excelente',
-      image: '/placeholder.svg',
-      rating: 4.6,
-      reviews: 45,
-      category: 'Monitor'
-    },
-    {
-      id: 5,
-      name: 'Razer DeathAdder V3',
-      originalPrice: 199.99,
-      salePrice: 129.99,
-      condition: 'Muito Bom',
-      image: '/placeholder.svg',
-      rating: 4.8,
-      reviews: 134,
-      category: 'Mouse'
-    },
-    {
-      id: 6,
-      name: 'SteelSeries Arctis 7',
-      originalPrice: 449.99,
-      salePrice: 289.99,
-      condition: 'Excelente',
-      image: '/placeholder.svg',
-      rating: 4.7,
-      reviews: 78,
-      category: 'Headset'
-    },
-    {
-      id: 7,
-      name: 'Xbox Controller',
-      originalPrice: 249.99,
-      salePrice: 159.99,
-      condition: 'Bom',
-      image: '/placeholder.svg',
-      rating: 4.5,
-      reviews: 92,
-      category: 'Controle'
-    },
-    {
-      id: 8,
-      name: 'Logitech C920',
-      originalPrice: 299.99,
-      salePrice: 189.99,
-      condition: 'Muito Bom',
-      image: '/placeholder.svg',
-      rating: 4.6,
-      reviews: 67,
-      category: 'Webcam'
-    }
-  ];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const categories = ['all', 'Mouse', 'Teclado', 'Headset', 'Monitor', 'Controle', 'Webcam'];
 
-  const filteredProducts = allProducts.filter(product => {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setProducts(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Update search/category when URL params change
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '');
+    setSelectedCategory(searchParams.get('category') || 'all');
+  }, [searchParams]);
+
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">Carregando produtos...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
