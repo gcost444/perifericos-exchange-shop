@@ -84,8 +84,6 @@ const ProductDetail = () => {
     );
   }
 
-  const discountPercent = Math.round(((product.original_price - product.sale_price) / product.original_price) * 100);
-
   const getConditionColor = (condition: string) => {
     switch (condition) {
       case 'Excelente': return 'bg-green-100 text-green-800';
@@ -138,11 +136,6 @@ const ProductDetail = () => {
               className="w-full h-96 object-cover rounded-xl"
             />
             
-            {/* Discount Badge */}
-            <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-              -{discountPercent}%
-            </div>
-            
             {/* Condition Badge */}
             <div className={`absolute bottom-4 left-4 px-3 py-1 rounded-full text-sm font-medium ${getConditionColor(product.condition)}`}>
               {product.condition}
@@ -182,17 +175,11 @@ const ProductDetail = () => {
 
             {/* Price */}
             <div className="space-y-2">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center">
                 <span className="text-3xl font-bold text-gray-800">
                   R$ {product.sale_price.toFixed(2)}
                 </span>
-                <span className="text-xl text-gray-500 line-through">
-                  R$ {product.original_price.toFixed(2)}
-                </span>
               </div>
-              <p className="text-lg text-green-600 font-medium">
-                Economia de R$ {(product.original_price - product.sale_price).toFixed(2)}
-              </p>
             </div>
 
             {/* Stock */}
