@@ -1,77 +1,64 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  original_price: number;
+  sale_price: number;
+  condition: string;
+  image: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  stock: number;
+}
 
 const FeaturedProducts = () => {
-  const featuredProducts = [
-    {
-      id: 1,
-      name: 'Logitech MX Master 3',
-      original_price: 299.99,
-      sale_price: 299.99,
-      condition: 'Excelente',
-      image: 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=600&h=400&fit=crop',
-      rating: 4.8,
-      reviews: 156,
-      category: 'Mouse'
-    },
-    {
-      id: 2,
-      name: 'Corsair K70 RGB',
-      original_price: 649.99,
-      sale_price: 649.99,
-      condition: 'Muito Bom',
-      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&h=400&fit=crop',
-      rating: 4.9,
-      reviews: 203,
-      category: 'Teclado'
-    },
-    {
-      id: 3,
-      name: 'HyperX Cloud II',
-      original_price: 449.99,
-      sale_price: 449.99,
-      condition: 'Bom',
-      image: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=600&h=400&fit=crop',
-      rating: 4.7,
-      reviews: 89,
-      category: 'Headset'
-    },
-    {
-      id: 4,
-      name: 'LG UltraWide 29"',
-      original_price: 999.99,
-      sale_price: 999.99,
-      condition: 'Excelente',
-      image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&h=400&fit=crop',
-      rating: 4.6,
-      reviews: 45,
-      category: 'Monitor'
-    },
-    {
-      id: 5,
-      name: 'Razer DeathAdder V3',
-      original_price: 349.99,
-      sale_price: 349.99,
-      condition: 'Muito Bom',
-      image: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=600&h=400&fit=crop',
-      rating: 4.8,
-      reviews: 134,
-      category: 'Mouse'
-    },
-    {
-      id: 6,
-      name: 'SteelSeries Arctis 7',
-      original_price: 399.99,
-      sale_price: 399.99,
-      condition: 'Excelente',
-      image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop',
-      rating: 4.7,
-      reviews: 78,
-      category: 'Headset'
-    },
-  ];
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeaturedProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .limit(6)
+          .order('rating', { ascending: false });
+
+        if (error) throw error;
+        setFeaturedProducts(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar produtos em destaque:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+              Produtos em Destaque
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Carregando produtos...
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-gray-50">
