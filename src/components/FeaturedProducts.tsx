@@ -8,10 +8,10 @@ const FeaturedProducts = () => {
     {
       id: 1,
       name: 'Logitech MX Master 3',
-      originalPrice: 399.99,
-      salePrice: 249.99,
+      original_price: 299.99,
+      sale_price: 299.99,
       condition: 'Excelente',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=600&h=400&fit=crop',
       rating: 4.8,
       reviews: 156,
       category: 'Mouse'
@@ -19,10 +19,10 @@ const FeaturedProducts = () => {
     {
       id: 2,
       name: 'Corsair K70 RGB',
-      originalPrice: 899.99,
-      salePrice: 549.99,
+      original_price: 649.99,
+      sale_price: 649.99,
       condition: 'Muito Bom',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&h=400&fit=crop',
       rating: 4.9,
       reviews: 203,
       category: 'Teclado'
@@ -30,10 +30,10 @@ const FeaturedProducts = () => {
     {
       id: 3,
       name: 'HyperX Cloud II',
-      originalPrice: 299.99,
-      salePrice: 179.99,
+      original_price: 449.99,
+      sale_price: 449.99,
       condition: 'Bom',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=600&h=400&fit=crop',
       rating: 4.7,
       reviews: 89,
       category: 'Headset'
@@ -41,10 +41,10 @@ const FeaturedProducts = () => {
     {
       id: 4,
       name: 'LG UltraWide 29"',
-      originalPrice: 1299.99,
-      salePrice: 799.99,
+      original_price: 999.99,
+      sale_price: 999.99,
       condition: 'Excelente',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&h=400&fit=crop',
       rating: 4.6,
       reviews: 45,
       category: 'Monitor'
@@ -52,10 +52,10 @@ const FeaturedProducts = () => {
     {
       id: 5,
       name: 'Razer DeathAdder V3',
-      originalPrice: 199.99,
-      salePrice: 129.99,
+      original_price: 349.99,
+      sale_price: 349.99,
       condition: 'Muito Bom',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=600&h=400&fit=crop',
       rating: 4.8,
       reviews: 134,
       category: 'Mouse'
@@ -63,10 +63,10 @@ const FeaturedProducts = () => {
     {
       id: 6,
       name: 'SteelSeries Arctis 7',
-      originalPrice: 449.99,
-      salePrice: 289.99,
+      original_price: 399.99,
+      sale_price: 399.99,
       condition: 'Excelente',
-      image: '/placeholder.svg',
+      image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop',
       rating: 4.7,
       reviews: 78,
       category: 'Headset'
@@ -81,7 +81,7 @@ const FeaturedProducts = () => {
             Produtos em Destaque
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Selecionamos os melhores periféricos com as melhores condições e preços imperdíveis
+            Selecionamos os melhores periféricos com as melhores condições e preços
           </p>
         </div>
 

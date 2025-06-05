@@ -24,7 +24,6 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, toggleWishlist, isInWishlist } = useApp();
-  const discountPercent = Math.round(((product.original_price - product.sale_price) / product.original_price) * 100);
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
@@ -61,11 +60,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           alt={product.name}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        
-        {/* Discount Badge */}
-        <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-sm font-semibold">
-          -{discountPercent}%
-        </div>
         
         {/* Wishlist Button */}
         <button 
@@ -119,13 +113,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <span className="text-2xl font-bold text-gray-800">
               R$ {product.sale_price.toFixed(2)}
             </span>
-            <span className="text-lg text-gray-500 line-through">
-              R$ {product.original_price.toFixed(2)}
-            </span>
           </div>
-          <p className="text-sm text-green-600 font-medium">
-            Economia de R$ {(product.original_price - product.sale_price).toFixed(2)}
-          </p>
         </div>
         
         <div className="flex space-x-2">
