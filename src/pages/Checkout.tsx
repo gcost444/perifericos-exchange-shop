@@ -43,19 +43,26 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      // Create order
+      console.log('Iniciando criação do pedido...');
+      
+      // Create order with 'pending' status instead of 'completed'
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
           total_amount: totalAmount,
-          status: 'completed',
+          status: 'pending',
           shipping_address: null,
         })
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Erro ao criar pedido:', orderError);
+        throw orderError;
+      }
+
+      console.log('Pedido criado:', order);
 
       // Create order items
       const orderItems = cartItems.map(item => ({
@@ -69,7 +76,12 @@ const Checkout = () => {
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Erro ao criar itens do pedido:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('Itens do pedido criados com sucesso');
 
       // Clear cart
       clearCart();
