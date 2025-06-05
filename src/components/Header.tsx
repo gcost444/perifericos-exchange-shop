@@ -1,13 +1,27 @@
 
 import React, { useState } from 'react';
-import { Search, ShoppingCart, User, Menu, X, Heart, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, ShoppingCart, User, Menu, X, Heart, Plus, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useApp } from '../contexts/AppContext';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { getCartItemsCount } = useApp();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -48,11 +62,30 @@ const Header = () => {
               </Button>
             </Link>
             
-            <Link to="/auth">
-              <Button variant="ghost" size="sm">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/orders')}>
+                    Meus Pedidos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link to="/auth">
+                <Button variant="ghost" size="sm">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -102,11 +135,24 @@ const Header = () => {
                   </Button>
                 </Link>
                 
-                <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" size="sm">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </Link>
+                {user ? (
+                  <div className="flex items-center space-x-2">
+                    <Link to="/orders" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="ghost" size="sm">
+                        Pedidos
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="sm" onClick={() => { handleSignOut(); setIsMenuOpen(false); }}>
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant="ghost" size="sm">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                )}
               </div>
             </nav>
           </div>

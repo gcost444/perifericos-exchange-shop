@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,28 +16,10 @@ const Checkout = () => {
   const { cartItems, clearCart } = useApp();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: '',
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '',
-  });
 
   const totalAmount = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  const handleAddressChange = (field: string, value: string) => {
-    setShippingAddress(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     if (!user) {
       toast({
         title: "Login necessário",
@@ -68,8 +49,8 @@ const Checkout = () => {
         .insert({
           user_id: user.id,
           total_amount: totalAmount,
-          status: 'pending',
-          shipping_address: shippingAddress,
+          status: 'completed',
+          shipping_address: null,
         })
         .select()
         .single();
@@ -159,65 +140,7 @@ const Checkout = () => {
 
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Finalizar Compra</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Shipping Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Endereço de Entrega</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Input
-                    placeholder="Nome completo"
-                    value={shippingAddress.fullName}
-                    onChange={(e) => handleAddressChange('fullName', e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Input
-                    placeholder="Endereço completo"
-                    value={shippingAddress.street}
-                    onChange={(e) => handleAddressChange('street', e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    placeholder="Cidade"
-                    value={shippingAddress.city}
-                    onChange={(e) => handleAddressChange('city', e.target.value)}
-                    required
-                  />
-                  <Input
-                    placeholder="Estado"
-                    value={shippingAddress.state}
-                    onChange={(e) => handleAddressChange('state', e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    placeholder="CEP"
-                    value={shippingAddress.zipCode}
-                    onChange={(e) => handleAddressChange('zipCode', e.target.value)}
-                    required
-                  />
-                  <Input
-                    placeholder="Telefone"
-                    value={shippingAddress.phone}
-                    onChange={(e) => handleAddressChange('phone', e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Processando...' : 'Finalizar Pedido'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
+        <div className="max-w-md mx-auto">
           {/* Order Summary */}
           <Card>
             <CardHeader>
@@ -243,6 +166,14 @@ const Checkout = () => {
                     <span>R$ {totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
+
+                <Button 
+                  onClick={handleSubmit} 
+                  className="w-full mt-6" 
+                  disabled={loading}
+                >
+                  {loading ? 'Processando...' : 'Finalizar Pedido'}
+                </Button>
               </div>
             </CardContent>
           </Card>
