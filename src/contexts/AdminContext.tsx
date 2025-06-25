@@ -53,11 +53,42 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
 
   const adminLogin = async (email: string, password: string) => {
     try {
+      console.log('Attempting admin login for:', email);
+      
       const { data, error } = await supabase.functions.invoke('admin-auth/login', {
         body: { email, password }
       });
 
-      if (error) throw error;
+      console.log('Login response:', { data, error });
+
+      if (error) {
+        console.error('Login error:', error);
+        let errorMessage = 'Erro ao fazer login';
+        
+        if (error.message?.includes('non-2xx')) {
+          errorMessage = 'Credenciais inválidas ou erro no servidor';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        toast({
+          title: "Erro ao fazer login",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        
+        return { error };
+      }
+
+      if (!data) {
+        const noDataError = new Error('Nenhum dado retornado do servidor');
+        toast({
+          title: "Erro ao fazer login",
+          description: "Resposta inválida do servidor",
+          variant: "destructive",
+        });
+        return { error: noDataError };
+      }
 
       setAdmin(data.admin);
       setToken(data.token);
@@ -76,7 +107,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       console.error('Admin login error:', error);
       toast({
         title: "Erro ao fazer login",
-        description: error.message || "Credenciais inválidas",
+        description: "Erro de conexão com o servidor",
         variant: "destructive",
       });
       return { error };
