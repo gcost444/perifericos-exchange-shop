@@ -44,8 +44,14 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     const savedAdmin = localStorage.getItem('admin_data');
 
     if (savedToken && savedAdmin) {
-      setToken(savedToken);
-      setAdmin(JSON.parse(savedAdmin));
+      try {
+        setToken(savedToken);
+        setAdmin(JSON.parse(savedAdmin));
+      } catch (error) {
+        console.error('Error parsing saved admin data:', error);
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_data');
+      }
     }
     
     setLoading(false);
@@ -66,7 +72,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         let errorMessage = 'Erro ao fazer login';
         
         if (error.message?.includes('non-2xx')) {
-          errorMessage = 'Credenciais inválidas ou erro no servidor';
+          errorMessage = 'Credenciais inválidas. Verifique seu email e senha.';
+        } else if (error.message?.includes('network')) {
+          errorMessage = 'Erro de conexão. Tente novamente.';
         } else if (error.message) {
           errorMessage = error.message;
         }
@@ -80,8 +88,9 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         return { error };
       }
 
-      if (!data) {
-        const noDataError = new Error('Nenhum dado retornado do servidor');
+      if (!data || !data.admin || !data.token) {
+        const noDataError = new Error('Resposta inválida do servidor');
+        console.error('Invalid response data:', data);
         toast({
           title: "Erro ao fazer login",
           description: "Resposta inválida do servidor",
@@ -90,6 +99,8 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         return { error: noDataError };
       }
 
+      console.log('Login successful, setting admin data:', data.admin);
+      
       setAdmin(data.admin);
       setToken(data.token);
       

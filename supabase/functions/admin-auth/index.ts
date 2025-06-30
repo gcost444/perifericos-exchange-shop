@@ -2,7 +2,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hash, compare } from "https://deno.land/x/bcrypt@v0.2.4/mod.ts";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { create, verify } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
@@ -72,17 +72,20 @@ async function handleLogin(req: Request) {
     console.log('Admin found:', admin ? 'Yes' : 'No', error ? error.message : '');
 
     if (error || !admin) {
+      console.log('Admin not found or database error:', error);
       return new Response(JSON.stringify({ error: 'Credenciais inválidas' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Verificar senha
-    const passwordMatch = await compare(password, admin.password_hash);
+    // Verificar senha usando bcrypt atualizado
+    console.log('Checking password for admin:', admin.email);
+    const passwordMatch = await bcrypt.compare(password, admin.password_hash);
     console.log('Password match:', passwordMatch);
     
     if (!passwordMatch) {
+      console.log('Password does not match for admin:', admin.email);
       return new Response(JSON.stringify({ error: 'Credenciais inválidas' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -101,13 +104,17 @@ async function handleLogin(req: Request) {
 
     // Salvar sessão no banco
     const expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000));
-    await supabase
+    const { error: sessionError } = await supabase
       .from('admin_sessions')
       .insert({
         admin_id: admin.id,
         token,
         expires_at: expiresAt.toISOString()
       });
+
+    if (sessionError) {
+      console.error('Error creating session:', sessionError);
+    }
 
     console.log('Login successful for:', email);
 
@@ -143,7 +150,7 @@ async function handleRegister(req: Request) {
     }
 
     // Criptografar senha
-    const passwordHash = await hash(password);
+    const passwordHash = await bcrypt.hash(password);
 
     // Criar admin
     const { data: admin, error } = await supabase
