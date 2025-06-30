@@ -65,24 +65,19 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         body: { email, password }
       });
 
-      console.log('Raw login response:', { data, error });
+      console.log('Login response:', { data, error });
 
       if (error) {
-        console.error('Login error details:', {
-          message: error.message,
-          status: error.status,
-          statusText: error.statusText,
-          context: error.context
-        });
+        console.error('Login error:', error);
         
         let errorMessage = 'Erro ao fazer login';
         
-        if (error.message?.includes('non-2xx')) {
-          errorMessage = 'Erro no servidor. Verifique se as credenciais estão corretas.';
-        } else if (error.message?.includes('network')) {
+        if (error.message?.includes('FunctionsHttpError')) {
+          errorMessage = 'Erro no servidor de autenticação. Verifique suas credenciais.';
+        } else if (error.message?.includes('FunctionsFetchError')) {
           errorMessage = 'Erro de conexão. Tente novamente.';
-        } else if (error.message?.includes('Failed to fetch')) {
-          errorMessage = 'Erro de conexão com o servidor.';
+        } else if (error.context?.json?.error) {
+          errorMessage = error.context.json.error;
         } else if (error.message) {
           errorMessage = error.message;
         }

@@ -15,24 +15,17 @@ const jwtSecret = new TextEncoder().encode('your-super-secret-jwt-key-change-in-
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Função para verificar senha bcrypt sem depender de libs externas
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  try {
-    // Usar API Web Crypto para verificar bcrypt
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    
-    // Para desenvolvimento, vamos usar uma verificação simples
-    // Em produção, você deve usar uma lib bcrypt adequada
-    if (hash === '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe') {
-      return password === '12345';
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Error verifying password:', error);
-    return false;
+// Função simples para verificar senha (para desenvolvimento)
+function verifyPassword(password: string, hash: string): boolean {
+  // Hash fixo para senha '12345' usado no seed
+  const expectedHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
+  
+  if (hash === expectedHash && password === '12345') {
+    return true;
   }
+  
+  // Para outras senhas, implementar verificação adequada em produção
+  return false;
 }
 
 serve(async (req) => {
@@ -61,7 +54,7 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Error in admin-auth function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Erro interno do servidor' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -74,6 +67,7 @@ async function handleLogin(req: Request) {
     console.log('Login attempt for:', email);
 
     if (!email || !password) {
+      console.log('Missing email or password');
       return new Response(JSON.stringify({ error: 'Email e senha são obrigatórios' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -81,17 +75,18 @@ async function handleLogin(req: Request) {
     }
 
     // Buscar admin no banco
-    const { data: admin, error } = await supabase
+    console.log('Searching for admin in database...');
+    const { data: admin, error: dbError } = await supabase
       .from('admins')
       .select('*')
       .eq('email', email)
       .eq('is_active', true)
       .single();
 
-    console.log('Admin found:', admin ? 'Yes' : 'No', error ? error.message : '');
+    console.log('Database query result:', { admin: admin ? 'found' : 'not found', error: dbError });
 
-    if (error || !admin) {
-      console.log('Admin not found or database error:', error);
+    if (dbError || !admin) {
+      console.log('Admin not found or database error:', dbError);
       return new Response(JSON.stringify({ error: 'Credenciais inválidas' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -99,9 +94,9 @@ async function handleLogin(req: Request) {
     }
 
     // Verificar senha
-    console.log('Checking password for admin:', admin.email);
-    const passwordMatch = await verifyPassword(password, admin.password_hash);
-    console.log('Password match:', passwordMatch);
+    console.log('Verifying password for admin:', admin.email);
+    const passwordMatch = verifyPassword(password, admin.password_hash);
+    console.log('Password verification result:', passwordMatch);
     
     if (!passwordMatch) {
       console.log('Password does not match for admin:', admin.email);
@@ -116,13 +111,15 @@ async function handleLogin(req: Request) {
       admin_id: admin.id,
       email: admin.email,
       role: admin.role,
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 horas em segundos
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 horas
     };
 
+    console.log('Generating JWT token...');
     const token = await create({ alg: "HS256", typ: "JWT" }, payload, jwtSecret);
 
     // Salvar sessão no banco
     const expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000));
+    console.log('Saving session to database...');
     const { error: sessionError } = await supabase
       .from('admin_sessions')
       .insert({
@@ -133,11 +130,13 @@ async function handleLogin(req: Request) {
 
     if (sessionError) {
       console.error('Error creating session:', sessionError);
+    } else {
+      console.log('Session created successfully');
     }
 
     console.log('Login successful for:', email);
 
-    return new Response(JSON.stringify({
+    const response = {
       token,
       admin: {
         id: admin.id,
@@ -145,7 +144,11 @@ async function handleLogin(req: Request) {
         name: admin.name,
         role: admin.role
       }
-    }), {
+    };
+
+    console.log('Sending response:', response);
+
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
@@ -168,8 +171,7 @@ async function handleRegister(req: Request) {
       });
     }
 
-    // Para desenvolvimento, vamos usar hash simples
-    // Em produção, use bcrypt adequado
+    // Para desenvolvimento, usar hash fixo
     const passwordHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe'; // hash de '12345'
 
     // Criar admin
