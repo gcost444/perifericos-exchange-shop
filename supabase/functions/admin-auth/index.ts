@@ -2,7 +2,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { create, verify } from "https://deno.land/x/djwt@v3.0.1/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +10,6 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const jwtSecret = new TextEncoder().encode('your-super-secret-jwt-key-change-in-production');
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -26,6 +24,19 @@ function verifyPassword(password: string, hash: string): boolean {
   
   // Para outras senhas, implementar verificação adequada em produção
   return false;
+}
+
+// Função simples para gerar token JWT
+function generateSimpleToken(adminId: string, email: string): string {
+  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = btoa(JSON.stringify({
+    admin_id: adminId,
+    email: email,
+    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 horas
+  }));
+  
+  // Token simples para desenvolvimento
+  return `${header}.${payload}.signature`;
 }
 
 serve(async (req) => {
@@ -106,16 +117,9 @@ async function handleLogin(req: Request) {
       });
     }
 
-    // Gerar token JWT
-    const payload = {
-      admin_id: admin.id,
-      email: admin.email,
-      role: admin.role,
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 horas
-    };
-
-    console.log('Generating JWT token...');
-    const token = await create({ alg: "HS256", typ: "JWT" }, payload, jwtSecret);
+    // Gerar token simples
+    console.log('Generating simple token...');
+    const token = generateSimpleToken(admin.id, admin.email);
 
     // Salvar sessão no banco
     const expiresAt = new Date(Date.now() + (24 * 60 * 60 * 1000));
@@ -228,8 +232,6 @@ async function handleVerifyToken(req: Request) {
   const token = authHeader.split(' ')[1];
 
   try {
-    const payload = await verify(token, jwtSecret);
-    
     // Verificar se a sessão ainda é válida
     const { data: session } = await supabase
       .from('admin_sessions')
@@ -245,7 +247,7 @@ async function handleVerifyToken(req: Request) {
       });
     }
 
-    return new Response(JSON.stringify({ valid: true, payload }), {
+    return new Response(JSON.stringify({ valid: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

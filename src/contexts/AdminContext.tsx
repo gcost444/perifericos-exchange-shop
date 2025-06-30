@@ -72,10 +72,11 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         
         let errorMessage = 'Erro ao fazer login';
         
+        // Tratamento específico para diferentes tipos de erro
         if (error.message?.includes('FunctionsHttpError')) {
-          errorMessage = 'Erro no servidor de autenticação. Verifique suas credenciais.';
+          errorMessage = 'Servidor de autenticação indisponível. Tente novamente em alguns instantes.';
         } else if (error.message?.includes('FunctionsFetchError')) {
-          errorMessage = 'Erro de conexão. Tente novamente.';
+          errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
         } else if (error.context?.json?.error) {
           errorMessage = error.context.json.error;
         } else if (error.message) {
@@ -96,7 +97,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         console.error('Invalid response data:', data);
         toast({
           title: "Erro ao fazer login",
-          description: "Resposta inválida do servidor",
+          description: "Resposta inválida do servidor. Tente novamente.",
           variant: "destructive",
         });
         return { error: noDataError };
@@ -119,11 +120,13 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       return { error: null };
     } catch (error) {
       console.error('Admin login error:', error);
+      
       toast({
-        title: "Erro ao fazer login",
-        description: "Erro de conexão com o servidor",
+        title: "Erro inesperado",
+        description: "Erro de conexão com o servidor. Verifique sua internet e tente novamente.",
         variant: "destructive",
       });
+      
       return { error };
     }
   };
