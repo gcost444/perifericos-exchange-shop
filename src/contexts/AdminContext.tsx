@@ -60,21 +60,30 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const adminLogin = async (email: string, password: string) => {
     try {
       console.log('Attempting admin login for:', email);
+      console.log('Supabase URL:', supabase.supabaseUrl);
       
       const { data, error } = await supabase.functions.invoke('admin-auth/login', {
         body: { email, password }
       });
 
-      console.log('Login response:', { data, error });
+      console.log('Raw login response:', { data, error });
 
       if (error) {
-        console.error('Login error:', error);
+        console.error('Login error details:', {
+          message: error.message,
+          status: error.status,
+          statusText: error.statusText,
+          context: error.context
+        });
+        
         let errorMessage = 'Erro ao fazer login';
         
         if (error.message?.includes('non-2xx')) {
-          errorMessage = 'Credenciais inválidas. Verifique seu email e senha.';
+          errorMessage = 'Erro no servidor. Verifique se as credenciais estão corretas.';
         } else if (error.message?.includes('network')) {
           errorMessage = 'Erro de conexão. Tente novamente.';
+        } else if (error.message?.includes('Failed to fetch')) {
+          errorMessage = 'Erro de conexão com o servidor.';
         } else if (error.message) {
           errorMessage = error.message;
         }
