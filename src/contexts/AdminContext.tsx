@@ -60,7 +60,6 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
   const adminLogin = async (email: string, password: string) => {
     try {
       console.log('Attempting admin login for:', email);
-      console.log('Supabase URL:', supabase.supabaseUrl);
       
       const { data, error } = await supabase.functions.invoke('admin-auth/login', {
         body: { email, password }
