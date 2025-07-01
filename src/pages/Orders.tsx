@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Navigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -27,39 +28,50 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchOrders = async () => {
+    if (!user) return;
+
+    try {
+      console.log('Buscando pedidos para o usuário:', user.id);
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            quantity,
+            price,
+            products (
+              name,
+              image
+            )
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      console.log('Pedidos carregados:', data);
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar pedidos:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select(`
-            *,
-            order_items (
-              quantity,
-              price,
-              products (
-                name,
-                image
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setOrders(data || []);
-      } catch (error) {
-        console.error('Erro ao buscar pedidos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, [user]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
+  };
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -72,6 +84,7 @@ const Orders = () => {
       case 'shipped': return 'bg-purple-100 text-purple-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-emerald-100 text-emerald-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -83,6 +96,7 @@ const Orders = () => {
       case 'shipped': return 'Enviado';
       case 'delivered': return 'Entregue';
       case 'cancelled': return 'Cancelado';
+      case 'completed': return 'Concluído';
       default: return status;
     }
   };
@@ -92,7 +106,18 @@ const Orders = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Meus Pedidos</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Meus Pedidos</h1>
+          <Button 
+            onClick={handleRefresh} 
+            disabled={refreshing}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+        </div>
 
         {loading ? (
           <div className="text-center">Carregando pedidos...</div>
