@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -117,13 +116,20 @@ const AdminOrders = () => {
 
       if (error) throw error;
 
+      // Atualizar o estado local imediatamente
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+
       toast({
         title: "Sucesso",
         description: `Status do pedido atualizado para ${getStatusText(newStatus)}`,
       });
 
-      // Atualizar a lista
-      loadOrders();
     } catch (error) {
       console.error('Erro ao atualizar pedido:', error);
       toast({
@@ -131,6 +137,8 @@ const AdminOrders = () => {
         description: "Erro ao atualizar status do pedido",
         variant: "destructive",
       });
+      // Em caso de erro, recarregar os dados
+      loadOrders();
     } finally {
       setUpdatingOrder(null);
     }
