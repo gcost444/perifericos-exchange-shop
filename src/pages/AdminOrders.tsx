@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Package, ArrowLeft, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -33,6 +35,7 @@ const AdminOrders = () => {
   const { admin, isAuthenticated } = useAdmin();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -103,30 +106,42 @@ const AdminOrders = () => {
     }
   };
 
-  const cancelOrder = async (orderId: string) => {
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    setUpdatingOrder(orderId);
+    
     try {
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'cancelled' })
+        .update({ status: newStatus })
         .eq('id', orderId);
 
       if (error) throw error;
 
       toast({
         title: "Sucesso",
-        description: "Pedido cancelado com sucesso",
+        description: `Status do pedido atualizado para ${getStatusText(newStatus)}`,
       });
 
       // Atualizar a lista
       loadOrders();
     } catch (error) {
-      console.error('Erro ao cancelar pedido:', error);
+      console.error('Erro ao atualizar pedido:', error);
       toast({
         title: "Erro",
-        description: "Erro ao cancelar pedido",
+        description: "Erro ao atualizar status do pedido",
         variant: "destructive",
       });
+    } finally {
+      setUpdatingOrder(null);
     }
+  };
+
+  const cancelOrder = async (orderId: string) => {
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
+      return;
+    }
+
+    await updateOrderStatus(orderId, 'cancelled');
   };
 
   const getStatusColor = (status: string) => {
@@ -136,6 +151,7 @@ const AdminOrders = () => {
       case 'shipped': return 'bg-purple-100 text-purple-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-emerald-100 text-emerald-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -147,8 +163,27 @@ const AdminOrders = () => {
       case 'shipped': return 'Enviado';
       case 'delivered': return 'Entregue';
       case 'cancelled': return 'Cancelado';
+      case 'completed': return 'Concluído';
       default: return status;
     }
+  };
+
+  const getStatusOptions = (currentStatus: string) => {
+    const allStatuses = [
+      { value: 'pending', label: 'Pendente' },
+      { value: 'processing', label: 'Processando' },
+      { value: 'shipped', label: 'Enviado' },
+      { value: 'delivered', label: 'Entregue' },
+      { value: 'completed', label: 'Concluído' },
+      { value: 'cancelled', label: 'Cancelado' }
+    ];
+
+    // Se já está cancelado ou concluído, não permitir mudanças
+    if (currentStatus === 'cancelled' || currentStatus === 'completed') {
+      return [];
+    }
+
+    return allStatuses;
   };
 
   if (!isAuthenticated) {
@@ -240,17 +275,41 @@ const AdminOrders = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => cancelOrder(order.id)}
-                            className="flex items-center"
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Cancelar
-                          </Button>
-                        )}
+                        <div className="flex space-x-2">
+                          {/* Seletor de Status */}
+                          {getStatusOptions(order.status).length > 0 && (
+                            <Select
+                              value={order.status}
+                              onValueChange={(value) => updateOrderStatus(order.id, value)}
+                              disabled={updatingOrder === order.id}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getStatusOptions(order.status).map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          
+                          {/* Botão Cancelar */}
+                          {order.status !== 'cancelled' && order.status !== 'completed' && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => cancelOrder(order.id)}
+                              disabled={updatingOrder === order.id}
+                              className="flex items-center"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Cancelar
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

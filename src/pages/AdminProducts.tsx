@@ -27,6 +27,7 @@ const AdminProducts = () => {
   const { admin, isAuthenticated } = useAdmin();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -62,17 +63,44 @@ const AdminProducts = () => {
   };
 
   const deleteProduct = async (productId: number) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) {
+    if (!confirm('Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.')) {
       return;
     }
 
+    setDeleting(productId);
+
     try {
+      console.log('Excluindo produto ID:', productId);
+
+      // Primeiro, verificar se há itens de pedido relacionados a este produto
+      const { data: orderItems, error: orderItemsError } = await supabase
+        .from('order_items')
+        .select('id')
+        .eq('product_id', productId);
+
+      if (orderItemsError) {
+        console.error('Erro ao verificar order_items:', orderItemsError);
+      }
+
+      if (orderItems && orderItems.length > 0) {
+        toast({
+          title: "Aviso",
+          description: "Este produto possui pedidos associados. Não é possível excluí-lo.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Excluir o produto
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir produto:', error);
+        throw error;
+      }
 
       toast({
         title: "Sucesso",
@@ -85,9 +113,11 @@ const AdminProducts = () => {
       console.error('Erro ao excluir produto:', error);
       toast({
         title: "Erro",
-        description: "Erro ao excluir produto",
+        description: "Erro ao excluir produto. Verifique se não há pedidos associados a este produto.",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -199,10 +229,11 @@ const AdminProducts = () => {
                           variant="destructive"
                           size="sm"
                           onClick={() => deleteProduct(product.id)}
+                          disabled={deleting === product.id}
                           className="flex items-center"
                         >
                           <Trash className="h-3 w-3 mr-1" />
-                          Excluir
+                          {deleting === product.id ? 'Excluindo...' : 'Excluir'}
                         </Button>
                       </TableCell>
                     </TableRow>
