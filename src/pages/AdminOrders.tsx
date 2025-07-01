@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -15,6 +14,7 @@ interface Order {
   status: string;
   created_at: string;
   shipping_address: any;
+  user_id: string;
   profiles: {
     full_name: string;
   } | null;
@@ -48,26 +48,49 @@ const AdminOrders = () => {
 
   const loadOrders = async () => {
     try {
-      const { data, error } = await supabase
+      // First get orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles (
-            full_name
-          ),
-          order_items (
-            quantity,
-            price,
-            products (
-              name,
-              image
-            )
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setOrders(data || []);
+      if (ordersError) throw ordersError;
+
+      // Then get order items with products
+      const { data: orderItemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select(`
+          order_id,
+          quantity,
+          price,
+          products (
+            name,
+            image
+          )
+        `);
+
+      if (itemsError) throw itemsError;
+
+      // Get profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name');
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const enrichedOrders = ordersData?.map(order => {
+        const profile = profilesData?.find(p => p.id === order.user_id);
+        const items = orderItemsData?.filter(item => item.order_id === order.id) || [];
+        
+        return {
+          ...order,
+          profiles: profile,
+          order_items: items
+        };
+      }) || [];
+
+      setOrders(enrichedOrders);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
       toast({
