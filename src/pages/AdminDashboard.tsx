@@ -13,6 +13,8 @@ interface DashboardStats {
   totalOrders: number;
   totalUsers: number;
   totalRevenue: number;
+  pendingOrders: number;
+  completedOrders: number;
 }
 
 const AdminDashboard = () => {
@@ -22,10 +24,13 @@ const AdminDashboard = () => {
     totalProducts: 0,
     totalOrders: 0,
     totalUsers: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
+    pendingOrders: 0,
+    completedOrders: 0
   });
   const [categoryData, setCategoryData] = useState([]);
   const [monthlyOrders, setMonthlyOrders] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Redirecionar se não estiver logado
@@ -43,6 +48,9 @@ const AdminDashboard = () => {
 
   const loadDashboardData = async () => {
     try {
+      console.log('Carregando dados do dashboard como admin...');
+      console.log('Admin autenticado:', admin);
+
       // Carregar estatísticas básicas
       const [productsRes, ordersRes, usersRes] = await Promise.all([
         supabase.from('products').select('*', { count: 'exact' }),
@@ -50,19 +58,49 @@ const AdminDashboard = () => {
         supabase.from('profiles').select('*', { count: 'exact' })
       ]);
 
-      // Calcular receita total
-      const { data: ordersData } = await supabase
-        .from('orders')
-        .select('total_amount')
-        .eq('status', 'completed');
+      console.log('Resultados das queries:', {
+        products: productsRes,
+        orders: ordersRes,
+        users: usersRes
+      });
 
-      const totalRevenue = ordersData?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      // Carregar todos os pedidos para calcular receita e estatísticas
+      const { data: allOrders, error: ordersError } = await supabase
+        .from('orders')
+        .select('total_amount, status, created_at');
+
+      console.log('Todos os pedidos:', { allOrders, ordersError });
+
+      let totalRevenue = 0;
+      let pendingOrders = 0;
+      let completedOrders = 0;
+
+      if (allOrders) {
+        allOrders.forEach(order => {
+          const amount = Number(order.total_amount) || 0;
+          totalRevenue += amount;
+          
+          if (order.status === 'pending') {
+            pendingOrders++;
+          } else if (order.status === 'completed') {
+            completedOrders++;
+          }
+        });
+      }
+
+      console.log('Estatísticas calculadas:', {
+        totalRevenue,
+        pendingOrders,
+        completedOrders
+      });
 
       setStats({
         totalProducts: productsRes.count || 0,
         totalOrders: ordersRes.count || 0,
         totalUsers: usersRes.count || 0,
-        totalRevenue
+        totalRevenue,
+        pendingOrders,
+        completedOrders
       });
 
       // Dados por categoria
@@ -86,13 +124,8 @@ const AdminDashboard = () => {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      const { data: recentOrders } = await supabase
-        .from('orders')
-        .select('created_at, total_amount')
-        .gte('created_at', sixMonthsAgo.toISOString());
-
       const monthlyData = {};
-      recentOrders?.forEach(order => {
+      allOrders?.forEach(order => {
         const month = new Date(order.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
         if (!monthlyData[month]) {
           monthlyData[month] = { month, orders: 0, revenue: 0 };
@@ -102,6 +135,17 @@ const AdminDashboard = () => {
       });
 
       setMonthlyOrders(Object.values(monthlyData));
+
+      // Carregar usuários recentes
+      const { data: recentUsersData } = await supabase
+        .from('profiles')
+        .select('id, full_name, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setRecentUsers(recentUsersData || []);
+      console.log('Usuários recentes:', recentUsersData);
+
       setLoading(false);
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
@@ -172,6 +216,9 @@ const AdminDashboard = () => {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total de Pedidos</p>
                       <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+                      <p className="text-xs text-gray-500">
+                        {stats.pendingOrders} pendentes • {stats.completedOrders} completos
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -195,15 +242,17 @@ const AdminDashboard = () => {
                     <TrendingUp className="h-8 w-8 text-orange-600" />
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Receita Total</p>
-                      <p className="text-2xl font-bold text-gray-900">R$ {stats.totalRevenue.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        R$ {stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               {/* Monthly Orders Chart */}
               <Card>
                 <CardHeader>
@@ -251,6 +300,46 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Recent Users Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Usuários Recentes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3">Nome</th>
+                        <th className="px-6 py-3">Data de Cadastro</th>
+                        <th className="px-6 py-3">ID</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentUsers.map((user) => (
+                        <tr key={user.id} className="bg-white border-b">
+                          <td className="px-6 py-4 font-medium text-gray-900">
+                            {user.full_name || 'Nome não informado'}
+                          </td>
+                          <td className="px-6 py-4">
+                            {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 text-gray-500 font-mono text-xs">
+                            {user.id}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {recentUsers.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      Nenhum usuário encontrado
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
