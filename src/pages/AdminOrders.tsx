@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -53,8 +51,9 @@ const AdminOrders = () => {
   const loadOrders = async () => {
     try {
       console.log('Carregando pedidos como admin...');
+      console.log('Admin autenticado:', admin);
       
-      // First get orders with items and products
+      // Primeiro, vamos buscar todos os pedidos com seus itens
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -70,34 +69,47 @@ const AdminOrders = () => {
         `)
         .order('created_at', { ascending: false });
 
+      console.log('Resultado da query de pedidos:', { ordersData, ordersError });
+
       if (ordersError) {
         console.error('Erro ao buscar pedidos:', ordersError);
         throw ordersError;
       }
 
-      // Then get profiles for each unique user_id
-      const userIds = [...new Set(ordersData?.map(order => order.user_id) || [])];
+      if (!ordersData || ordersData.length === 0) {
+        console.log('Nenhum pedido encontrado na base de dados');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar os perfis dos usuários
+      const userIds = [...new Set(ordersData.map(order => order.user_id))];
+      console.log('User IDs únicos encontrados:', userIds);
       
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', userIds);
 
+      console.log('Resultado da query de profiles:', { profilesData, profilesError });
+
       if (profilesError) {
         console.error('Erro ao buscar profiles:', profilesError);
-        // Continue without profiles instead of throwing
+        // Continuar sem profiles em caso de erro
       }
 
-      // Create a map of user_id to profile
+      // Criar um mapa de user_id para profile
       const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
+      console.log('Mapa de profiles criado:', profilesMap);
 
-      // Combine orders with their corresponding profiles
-      const ordersWithProfiles = ordersData?.map(order => ({
+      // Combinar pedidos com seus profiles correspondentes
+      const ordersWithProfiles = ordersData.map(order => ({
         ...order,
         profiles: profilesMap.get(order.user_id) || null
-      })) || [];
+      }));
 
-      console.log('Pedidos carregados:', ordersWithProfiles);
+      console.log('Pedidos com profiles combinados:', ordersWithProfiles);
       setOrders(ordersWithProfiles);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
