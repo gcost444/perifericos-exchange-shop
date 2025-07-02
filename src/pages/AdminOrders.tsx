@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -65,7 +66,7 @@ const AdminOrders = () => {
               image
             )
           ),
-          profiles (
+          profiles!orders_user_id_fkey (
             full_name
           )
         `)
