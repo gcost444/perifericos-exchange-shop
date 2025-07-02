@@ -54,7 +54,7 @@ const AdminOrders = () => {
     try {
       console.log('Carregando pedidos como admin...');
       
-      // Buscar pedidos com itens e produtos em uma única query
+      // First get orders with items and products
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
@@ -66,9 +66,6 @@ const AdminOrders = () => {
               name,
               image
             )
-          ),
-          profiles (
-            full_name
           )
         `)
         .order('created_at', { ascending: false });
@@ -78,8 +75,30 @@ const AdminOrders = () => {
         throw ordersError;
       }
 
-      console.log('Pedidos carregados:', ordersData);
-      setOrders(ordersData || []);
+      // Then get profiles for each unique user_id
+      const userIds = [...new Set(ordersData?.map(order => order.user_id) || [])];
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Erro ao buscar profiles:', profilesError);
+        // Continue without profiles instead of throwing
+      }
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
+
+      // Combine orders with their corresponding profiles
+      const ordersWithProfiles = ordersData?.map(order => ({
+        ...order,
+        profiles: profilesMap.get(order.user_id) || null
+      })) || [];
+
+      console.log('Pedidos carregados:', ordersWithProfiles);
+      setOrders(ordersWithProfiles);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
       toast({
@@ -326,4 +345,3 @@ const AdminOrders = () => {
 };
 
 export default AdminOrders;
-
