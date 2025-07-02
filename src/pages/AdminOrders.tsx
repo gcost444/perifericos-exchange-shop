@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -50,49 +51,34 @@ const AdminOrders = () => {
 
   const loadOrders = async () => {
     try {
-      // First get orders
+      console.log('Carregando pedidos como admin...');
+      
+      // Buscar pedidos com itens e produtos em uma única query
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          order_items (
+            quantity,
+            price,
+            products (
+              name,
+              image
+            )
+          ),
+          profiles (
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error('Erro ao buscar pedidos:', ordersError);
+        throw ordersError;
+      }
 
-      // Then get order items with products
-      const { data: orderItemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          order_id,
-          quantity,
-          price,
-          products (
-            name,
-            image
-          )
-        `);
-
-      if (itemsError) throw itemsError;
-
-      // Get profiles
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name');
-
-      if (profilesError) throw profilesError;
-
-      // Combine the data
-      const enrichedOrders = ordersData?.map(order => {
-        const profile = profilesData?.find(p => p.id === order.user_id);
-        const items = orderItemsData?.filter(item => item.order_id === order.id) || [];
-        
-        return {
-          ...order,
-          profiles: profile,
-          order_items: items
-        };
-      }) || [];
-
-      setOrders(enrichedOrders);
+      console.log('Pedidos carregados:', ordersData);
+      setOrders(ordersData || []);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
       toast({
@@ -109,12 +95,17 @@ const AdminOrders = () => {
     setUpdatingOrder(orderId);
     
     try {
+      console.log(`Atualizando pedido ${orderId} para status ${newStatus}`);
+      
       const { error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar pedido:', error);
+        throw error;
+      }
 
       // Atualizar o estado local imediatamente
       setOrders(prevOrders => 
@@ -124,6 +115,8 @@ const AdminOrders = () => {
             : order
         )
       );
+
+      console.log(`Pedido ${orderId} atualizado com sucesso para ${newStatus}`);
 
       toast({
         title: "Sucesso",
