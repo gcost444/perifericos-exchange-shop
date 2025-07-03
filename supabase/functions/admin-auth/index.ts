@@ -26,6 +26,17 @@ function verifyPassword(password: string, hash: string): boolean {
   return false;
 }
 
+// Função simples para gerar hash de senha (desenvolvimento)
+function hashPassword(password: string): string {
+  // Para desenvolvimento, usar hash fixo
+  if (password === '12345') {
+    return '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
+  }
+  
+  // Em produção, implementar hash adequado
+  return '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
+}
+
 // Função simples para gerar token JWT
 function generateSimpleToken(adminId: string, email: string): string {
   const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
@@ -168,15 +179,31 @@ async function handleRegister(req: Request) {
   try {
     const { email, password, name, role = 'admin' } = await req.json();
 
+    console.log('Admin registration attempt for:', email);
+
     if (!email || !password || !name) {
-      return new Response(JSON.stringify({ error: 'Todos os campos são obrigatórios' }), {
+      return new Response(JSON.stringify({ error: 'Email, senha e nome são obrigatórios' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Para desenvolvimento, usar hash fixo
-    const passwordHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe'; // hash de '12345'
+    // Verificar se o email já existe
+    const { data: existingAdmin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (existingAdmin) {
+      return new Response(JSON.stringify({ error: 'Email já está em uso' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Gerar hash da senha
+    const passwordHash = hashPassword(password);
 
     // Criar admin
     const { data: admin, error } = await supabase
@@ -191,14 +218,11 @@ async function handleRegister(req: Request) {
       .single();
 
     if (error) {
-      if (error.code === '23505') {
-        return new Response(JSON.stringify({ error: 'Email já está em uso' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      console.error('Error creating admin:', error);
       throw error;
     }
+
+    console.log('Admin created successfully:', admin.email);
 
     return new Response(JSON.stringify({
       message: 'Administrador criado com sucesso',

@@ -1,40 +1,73 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAdmin } from '../contexts/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Lock, Home, UserPlus } from 'lucide-react';
+import { UserPlus, User, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
-const AdminLogin = () => {
+const AdminRegister = () => {
   const navigate = useNavigate();
-  const { adminLogin, isAuthenticated } = useAdmin();
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    name: '',
+    role: 'admin'
   });
   const [loading, setLoading] = useState(false);
-
-  // Redirecionar se já estiver logado
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/admin/dashboard');
-    }
-  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await adminLogin(formData.email, formData.password);
-    
-    if (!error) {
-      navigate('/admin/dashboard');
+    try {
+      console.log('Registrando novo admin:', formData.email);
+      
+      const response = await fetch('/functions/v1/admin-auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+      console.log('Resposta do registro:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao registrar admin');
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Admin registrado com sucesso!",
+      });
+
+      // Limpar formulário
+      setFormData({
+        email: '',
+        password: '',
+        name: '',
+        role: 'admin'
+      });
+
+      // Redirecionar para login após 2 segundos
+      setTimeout(() => {
+        navigate('/admin/login');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Erro ao registrar admin:', error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao registrar admin",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,17 +82,34 @@ const AdminLogin = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <Shield className="h-12 w-12 text-blue-600" />
+            <UserPlus className="h-12 w-12 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl font-bold">Painel Administrativo</CardTitle>
-          <p className="text-gray-600">Faça login para acessar o sistema</p>
+          <CardTitle className="text-2xl font-bold">Registrar Admin</CardTitle>
+          <p className="text-gray-600">Criar nova conta de administrador</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="name">Nome Completo</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Nome do administrador"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   name="email"
@@ -88,6 +138,9 @@ const AdminLogin = () => {
                   required
                 />
               </div>
+              <p className="text-sm text-gray-500">
+                Para desenvolvimento, use '12345' como senha
+              </p>
             </div>
 
             <Button 
@@ -95,7 +148,7 @@ const AdminLogin = () => {
               className="w-full" 
               disabled={loading}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Registrando...' : 'Registrar Admin'}
             </Button>
           </form>
 
@@ -103,22 +156,11 @@ const AdminLogin = () => {
             <div className="text-center">
               <Button
                 variant="outline"
-                onClick={() => navigate('/admin/register')}
+                onClick={() => navigate('/admin/login')}
                 className="flex items-center w-full"
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Registrar Novo Admin
-              </Button>
-            </div>
-
-            <div className="text-center">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/')}
-                className="flex items-center w-full"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Voltar ao Site
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar ao Login
               </Button>
             </div>
           </div>
@@ -128,4 +170,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin;
+export default AdminRegister;
