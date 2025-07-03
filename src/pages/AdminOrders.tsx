@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, ArrowLeft, X } from 'lucide-react';
+import { Package, ArrowLeft, X, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface Order {
@@ -173,6 +173,10 @@ const AdminOrders = () => {
     }
   };
 
+  const completeOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'completed');
+  };
+
   const cancelOrder = async (orderId: string) => {
     if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
       return;
@@ -214,8 +218,8 @@ const AdminOrders = () => {
       { value: 'cancelled', label: 'Cancelado' }
     ];
 
-    // Se já está cancelado, não permitir mudanças
-    if (currentStatus === 'cancelled') {
+    // Se já está cancelado ou concluído, não permitir mudanças
+    if (currentStatus === 'cancelled' || currentStatus === 'completed') {
       return [];
     }
 
@@ -332,8 +336,22 @@ const AdminOrders = () => {
                             </Select>
                           )}
                           
+                          {/* Botão Concluir Pedido */}
+                          {order.status !== 'cancelled' && order.status !== 'completed' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => completeOrder(order.id)}
+                              disabled={updatingOrder === order.id}
+                              className="flex items-center bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Concluir
+                            </Button>
+                          )}
+                          
                           {/* Botão Cancelar */}
-                          {order.status !== 'cancelled' && (
+                          {order.status !== 'cancelled' && order.status !== 'completed' && (
                             <Button
                               variant="destructive"
                               size="sm"
