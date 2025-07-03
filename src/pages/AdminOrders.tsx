@@ -216,7 +216,7 @@ const AdminOrders = () => {
 
     // Se já está cancelado, não permitir mudanças
     if (currentStatus === 'cancelled') {
-      return [];
+      return allStatuses.filter(status => status.value === 'cancelled');
     }
 
     return allStatuses;

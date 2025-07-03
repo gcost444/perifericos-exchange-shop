@@ -136,11 +136,9 @@ const AdminRegister = () => {
                   onChange={handleChange}
                   className="pl-10"
                   required
+                  minLength={6}
                 />
               </div>
-              <p className="text-sm text-gray-500">
-                Para desenvolvimento, use '12345' como senha
-              </p>
             </div>
 
             <Button 

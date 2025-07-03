@@ -13,28 +13,19 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Função simples para verificar senha (para desenvolvimento)
-function verifyPassword(password: string, hash: string): boolean {
-  // Hash fixo para senha '12345' usado no seed
-  const expectedHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
-  
-  if (hash === expectedHash && password === '12345') {
-    return true;
-  }
-  
-  // Para outras senhas, implementar verificação adequada em produção
-  return false;
+// Função para hash da senha usando crypto
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Função simples para gerar hash de senha (desenvolvimento)
-function hashPassword(password: string): string {
-  // Para desenvolvimento, usar hash fixo
-  if (password === '12345') {
-    return '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
-  }
-  
-  // Em produção, implementar hash adequado
-  return '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
+// Função para verificar senha
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const hashedPassword = await hashPassword(password);
+  return hashedPassword === hash;
 }
 
 // Função simples para gerar token JWT
@@ -117,7 +108,7 @@ async function handleLogin(req: Request) {
 
     // Verificar senha
     console.log('Verifying password for admin:', admin.email);
-    const passwordMatch = verifyPassword(password, admin.password_hash);
+    const passwordMatch = await verifyPassword(password, admin.password_hash);
     console.log('Password verification result:', passwordMatch);
     
     if (!passwordMatch) {
@@ -188,6 +179,13 @@ async function handleRegister(req: Request) {
       });
     }
 
+    if (password.length < 6) {
+      return new Response(JSON.stringify({ error: 'A senha deve ter pelo menos 6 caracteres' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Verificar se o email já existe
     const { data: existingAdmin } = await supabase
       .from('admins')
@@ -203,7 +201,7 @@ async function handleRegister(req: Request) {
     }
 
     // Gerar hash da senha
-    const passwordHash = hashPassword(password);
+    const passwordHash = await hashPassword(password);
 
     // Criar admin
     const { data: admin, error } = await supabase
