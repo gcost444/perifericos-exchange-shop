@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Lock } from 'lucide-react';
+import { Shield, User, Lock, Home } from 'lucide-react';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -98,6 +98,17 @@ const AdminLogin = () => {
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              className="flex items-center w-full"
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Voltar ao Site
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

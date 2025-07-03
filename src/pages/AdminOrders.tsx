@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../contexts/AdminContext';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, ArrowLeft, X } from 'lucide-react';
+import { Package, ArrowLeft, X, CheckCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface Order {
@@ -131,7 +132,10 @@ const AdminOrders = () => {
       
       const { error } = await supabase
         .from('orders')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', orderId);
 
       if (error) {
@@ -169,11 +173,14 @@ const AdminOrders = () => {
     }
   };
 
+  const completeOrder = async (orderId: string) => {
+    await updateOrderStatus(orderId, 'completed');
+  };
+
   const cancelOrder = async (orderId: string) => {
     if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
       return;
     }
-
     await updateOrderStatus(orderId, 'cancelled');
   };
 
@@ -327,6 +334,20 @@ const AdminOrders = () => {
                                 ))}
                               </SelectContent>
                             </Select>
+                          )}
+                          
+                          {/* Botão Concluir Pedido */}
+                          {order.status !== 'cancelled' && order.status !== 'completed' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => completeOrder(order.id)}
+                              disabled={updatingOrder === order.id}
+                              className="flex items-center bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Concluir
+                            </Button>
                           )}
                           
                           {/* Botão Cancelar */}
