@@ -25,20 +25,34 @@ const AdminRegister = () => {
     try {
       console.log('Registrando novo admin:', formData.email);
       
-      const response = await fetch('/functions/v1/admin-auth/register', {
+      const response = await fetch('https://hllfw-bij-qwv-xsn-ishru-o.supabase.co/functions/v1/admin-auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhsbGZ3YmlqcXd2eHNuaXNocnVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkwNzU5MTEsImV4cCI6MjA2NDY1MTkxMX0.UahnIGZtmvthDyPkboN6ajkTbxWCDazqxs20cx-8CUQ`,
         },
         body: JSON.stringify(formData)
       });
 
-      const data = await response.json();
-      console.log('Resposta do registro:', data);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao registrar admin');
+        const errorText = await response.text();
+        console.error('Error response text:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+        }
+        
+        throw new Error(errorData.error || 'Erro ao registrar admin');
       }
+
+      const data = await response.json();
+      console.log('Resposta do registro:', data);
 
       toast({
         title: "Sucesso!",

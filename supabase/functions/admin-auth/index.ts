@@ -191,7 +191,7 @@ async function handleRegister(req: Request) {
       .from('admins')
       .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existingAdmin) {
       return new Response(JSON.stringify({ error: 'Email já está em uso' }), {
@@ -217,7 +217,10 @@ async function handleRegister(req: Request) {
 
     if (error) {
       console.error('Error creating admin:', error);
-      throw error;
+      return new Response(JSON.stringify({ error: 'Erro ao criar administrador' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Admin created successfully:', admin.email);
@@ -231,6 +234,7 @@ async function handleRegister(req: Request) {
         role: admin.role
       }
     }), {
+      status: 201,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
