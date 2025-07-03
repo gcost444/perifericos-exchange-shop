@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Shield, User, Lock, Home } from 'lucide-react';
+import { Shield, User, Lock, Home, UserPlus } from 'lucide-react';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -99,15 +99,28 @@ const AdminLogin = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/')}
-              className="flex items-center w-full"
-            >
-              <Home className="h-4 w-4 mr-2" />
-              Voltar ao Site
-            </Button>
+          <div className="mt-6 space-y-4">
+            <div className="text-center">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/register')}
+                className="flex items-center w-full"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Registrar Novo Admin
+              </Button>
+            </div>
+
+            <div className="text-center">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="flex items-center w-full"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Voltar ao Site
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

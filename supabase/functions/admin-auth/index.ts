@@ -13,17 +13,19 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Função simples para verificar senha (para desenvolvimento)
-function verifyPassword(password: string, hash: string): boolean {
-  // Hash fixo para senha '12345' usado no seed
-  const expectedHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe';
-  
-  if (hash === expectedHash && password === '12345') {
-    return true;
-  }
-  
-  // Para outras senhas, implementar verificação adequada em produção
-  return false;
+// Função para hash da senha usando crypto
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Função para verificar senha
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const hashedPassword = await hashPassword(password);
+  return hashedPassword === hash;
 }
 
 // Função simples para gerar token JWT
@@ -106,7 +108,7 @@ async function handleLogin(req: Request) {
 
     // Verificar senha
     console.log('Verifying password for admin:', admin.email);
-    const passwordMatch = verifyPassword(password, admin.password_hash);
+    const passwordMatch = await verifyPassword(password, admin.password_hash);
     console.log('Password verification result:', passwordMatch);
     
     if (!passwordMatch) {
@@ -168,15 +170,38 @@ async function handleRegister(req: Request) {
   try {
     const { email, password, name, role = 'admin' } = await req.json();
 
+    console.log('Admin registration attempt for:', email);
+
     if (!email || !password || !name) {
-      return new Response(JSON.stringify({ error: 'Todos os campos são obrigatórios' }), {
+      return new Response(JSON.stringify({ error: 'Email, senha e nome são obrigatórios' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Para desenvolvimento, usar hash fixo
-    const passwordHash = '$2a$10$rN8L8qNHxvL8xAL2.iAL2eJtDbyIGtQSYVgMQHpw3VLK0tQlpGVYe'; // hash de '12345'
+    if (password.length < 6) {
+      return new Response(JSON.stringify({ error: 'A senha deve ter pelo menos 6 caracteres' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verificar se o email já existe
+    const { data: existingAdmin } = await supabase
+      .from('admins')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingAdmin) {
+      return new Response(JSON.stringify({ error: 'Email já está em uso' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Gerar hash da senha
+    const passwordHash = await hashPassword(password);
 
     // Criar admin
     const { data: admin, error } = await supabase
@@ -191,14 +216,14 @@ async function handleRegister(req: Request) {
       .single();
 
     if (error) {
-      if (error.code === '23505') {
-        return new Response(JSON.stringify({ error: 'Email já está em uso' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw error;
+      console.error('Error creating admin:', error);
+      return new Response(JSON.stringify({ error: 'Erro ao criar administrador' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    console.log('Admin created successfully:', admin.email);
 
     return new Response(JSON.stringify({
       message: 'Administrador criado com sucesso',
@@ -209,6 +234,7 @@ async function handleRegister(req: Request) {
         role: admin.role
       }
     }), {
+      status: 201,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
